@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>地图可视化PPT生成器</title>
-        <link rel="icon" type="image/png" href="./favicon.png">
+    <link rel="icon" type="image/png" href="./favicon.png">
     <script src="./pptxgen.bundle.js"></script>
     <script src="./xlsx.full.min.js"></script>
     <style>
@@ -26,9 +26,10 @@
         .draggable { position: absolute; cursor: grab; user-select: none; box-sizing: border-box; }
         .draggable:active { cursor: grabbing; }
         .draggable.selected { outline: 2px dashed #3498db; }
+        #map-container.selected { outline: 2px dashed #3498db; outline-offset: 2px; min-height: 20px; }
         .resize-handle { position: absolute; right: -5px; bottom: -5px; width: 10px; height: 10px; background: #3498db; cursor: se-resize; display: none; border-radius: 50%; }
         .draggable.selected .resize-handle { display: block; }
-        #map-container { left: 50px; top: 100px; width: 450px; height: auto; }
+        #map-container { left: 50px; top: 100px; width: 450px; min-height: 50px; } #map-container.selected { box-shadow: 0 0 0 2px #3498db; }
         #mapImg { width: 100%; height: auto; display: block; pointer-events: none; }
         #table-container { left: 680px; top: 50px; width: 250px; height: auto; background: #fff; }
         .data-table { width: 100%; height: 100%; border-collapse: collapse; table-layout: fixed; border: 2px solid #4C8714; font-family: 'Microsoft YaHei', sans-serif; }
@@ -43,123 +44,71 @@
 
     <div id="sidebar">
         <div class="panel-section">
-                    <div style="text-align: center; margin-bottom: 10px;">
-            <img src="./alpicon.png" style="width: 80px; height: 80px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
-            <h3 style="margin: 5px 0 0 0; color: #3498db; font-size: 18px; letter-spacing: 1px;">由Alphard_改革则吉ver制作</h3>
-        </div>
+            <div style="text-align: center; margin-bottom: 10px;">
+                <img src="./alpicon.png" style="width: 80px; height: 80px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+                <h3 style="margin: 5px 0 0 0; color: #3498db; font-size: 18px; letter-spacing: 1px;">由Alphard_改革则吉ver制作</h3>
+            </div>
             <h4>1. 导入数据</h4>
             <label class="file-label" for="folderInput">📂 选择地图图片 (可多选)</label>
             <input type="file" id="folderInput" accept="image/jpeg, image/png" multiple>
-            
-            <!-- 新增：强制数字命名提示 -->
-            <p style="font-size: 11px; color: #e74c3c; margin: 5px 0 10px 0; line-height: 1.4;">
-                ⚠️ 建议将地图图片命名为纯数字（如：1.png, 2.png, 3.png），系统会自动按数字从小到大排列。
-            </p>
+            <p style="font-size: 11px; color: #e74c3c; margin: 5px 0 10px 0; line-height: 1.4;">⚠️ 建议将地图图片命名为纯数字（如：1.png），系统会自动按数字从小到大排列。</p>
 
             <label class="file-label" for="dataInput">📊 选择数据表格 (Excel)</label>
             <input type="file" id="dataInput" accept=".xlsx,.xls,.csv">
-            <p style="font-size: 11px; color: #3498db; margin: 5px 0 0 0; line-height: 1.4;">
-                💡 支持 .xlsx / .xls / .csv 格式。系统默认将<b>第一行识别为表头</b>。
-            </p>
-                        <button class="btn btn-gray" onclick="downloadSampleExcel()" style="margin-top: 8px; font-size: 12px;">📥 下载数据表格样例 (Excel)</button>
+            <p style="font-size: 11px; color: #3498db; margin: 5px 0 0 0; line-height: 1.4;">💡 支持 .xlsx / .xls / .csv。系统默认将第一行识别为表头。</p>
+            <button class="btn btn-gray" onclick="downloadSampleExcel()" style="margin-top: 8px; font-size: 12px;">📥 下载数据表格样例 (Excel)</button>
         </div>
         
         <div class="panel-section" id="colConfigSection" style="display: none;">
             <h4>2. 列宽与表头设置</h4>
+            <div style="background: #1a252f; border-left: 4px solid #f1c40f; padding: 10px; border-radius: 4px; margin-bottom: 10px; font-size: 12px; line-height: 1.6; color: #bdc3c7;">
+                <strong style="color: #fff;">💡 高级表头语法说明：</strong><br>
+                1. <b>换行：</b>直接按回车键。<br>
+                2. <b>混搭字号：</b>输入 <code style="background:#2c3e50; padding:0 3px; border-radius:3px; color:#e74c3c;">[20]区县</code>。<br>
+                3. <b>同行混搭：</b>输入 <code style="background:#2c3e50; padding:0 3px; border-radius:3px; color:#e74c3c;">[20]区县[12](含排名)</code>。
+            </div>
             <div id="colConfigList" style="margin-bottom: 10px;"></div>
         </div>
 
         <div class="panel-section">
             <h4>3. 表格尺寸精细控制</h4>
             <div style="margin-top: 10px; display: flex; align-items: center; gap: 10px;">
-                <input type="checkbox" id="provincialCapToggle" onchange="renderSlide(currentPreviewIndex)" style="cursor: pointer; transform: scale(1.2);">
+                <input type="checkbox" id="provincialCapToggle" onchange="renderSlide(currentPreviewIndex)" style="cursor: pointer;">
                 <label style="font-size: 12px; color: #e74c3c; cursor: pointer;" for="provincialCapToggle">省会文字强制标红</label>
-                <input type="text" id="provincialCapName" placeholder="省会名 如：成都" value="成都" oninput="renderSlide(currentPreviewIndex)" style="width: 100px; padding: 4px; border-radius: 4px; border: none; font-size: 12px;">
+                <input type="text" id="provincialCapName" placeholder="如：成都" value="成都" oninput="renderSlide(currentPreviewIndex)" style="width: 100px; padding: 4px; border-radius: 4px; border: none; font-size: 12px;">
             </div>
-
             <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <div style="flex: 1;">
-                    <label style="font-size: 12px;">总宽度：</label>
-                    <input type="range" id="tableWidthRange" min="100" max="800" value="250" style="width: 100%;">
-                </div>
-                <div style="flex: 1;">
-                    <label style="font-size: 12px;">总高度：</label>
-                    <input type="range" id="tableHeightRange" min="100" max="540" value="440" style="width: 100%;">
-                </div>
+                <div style="flex: 1;"><label style="font-size: 12px;">总宽度：</label><input type="range" id="tableWidthRange" min="100" max="800" value="250" style="width: 100%;"></div>
+                <div style="flex: 1;"><label style="font-size: 12px;">总高度：</label><input type="range" id="tableHeightRange" min="100" max="540" value="440" style="width: 100%;"></div>
             </div>
             <div style="margin-top: 10px; display: flex; align-items: center; gap: 10px;">
-                <label style="font-size: 12px; white-space: nowrap;">前几页留空：</label>
-                <input type="number" id="emptyPagesInput" value="0" min="0" style="width: 60px; padding: 4px; border-radius: 4px; border: none;">
+                <label style="font-size: 12px; white-space: nowrap;">前几页留空：</label><input type="number" id="emptyPagesInput" value="0" min="0" style="width: 60px; padding: 4px; border-radius: 4px; border: none;">
             </div>
             <div style="margin-top: 10px; display: flex; align-items: center; gap: 10px;">
-                <label style="font-size: 12px; white-space: nowrap; color: #e74c3c;">最后几页变红：</label>
-                <input type="number" id="redPagesInput" value="0" min="0" style="width: 60px; padding: 4px; border-radius: 4px; border: none;">
+                <label style="font-size: 12px; white-space: nowrap; color: #e74c3c;">最后几页变红：</label><input type="number" id="redPagesInput" value="0" min="0" style="width: 60px; padding: 4px; border-radius: 4px; border: none;">
             </div>
         </div>
 
         <div class="panel-section">
             <h4>4. 添加独立元素 (图层)</h4>
-            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                <div style="flex: 1;">
-                    <label style="font-size: 12px;">默认文字大小：</label>
-                    <input type="number" id="defaultTextSize" value="20" min="10" style="width: 100%; padding: 4px; border-radius: 4px; border: none;">
-                </div>
-            </div>
             <button class="btn btn-green" onclick="addTextElement()">+ 添加多色文字</button>
             <label class="file-label" for="imageUploader">+ 添加图片/Logo</label>
             <input type="file" id="imageUploader" accept="image/jpeg, image/png">
-            
-            <div style="margin-top: 10px; font-size: 11px; color: #bdc3c7; background: #2c3e50; padding: 8px; border-radius: 4px; line-height: 1.4;">
-                <strong style="color: #fff;">💡 快速插入颜色：</strong><br>
-                在弹窗里输入文字时，把以下色号贴在最前面即可。支持任意 Hex 色号（如粉色 [#FFC0CB]）。<br>
-                <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px;">
-                    <span style="color: #e74c3c;">■ [red]</span> 
-                    <span style="color: #3498db;">■ [blue]</span> 
-                    <span style="color: #2ecc71;">■ [green]</span> 
-                    <span style="color: #f1c40f;">■ [yellow]</span> 
-                    <span style="color: #9b59b6;">■ [purple]</span> 
-                    <span style="color: #e67e22;">■ [orange]</span>
-                    <span style="color: #FFC0CB;">■ [#FFC0CB]</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="panel-section" id="elementConfigPanel" style="display: none; border: 2px solid #f1c40f;">
-            <h4 style="color: #f1c40f;">调节当前选中元素</h4>
-            <div id="textSizeControl" style="display: none; margin-top: 10px;">
-                <label style="font-size: 12px;">当前文字字号：</label>
-                <input type="range" id="selectedTextSize" min="10" max="100" value="20" style="width: 100%;">
-            </div>
-            <div id="textColorControl" style="display: none; margin-top: 10px;">
-                <label style="font-size: 12px;">当前文字颜色：</label>
-                <input type="color" id="selectedTextColor" value="#000000" style="width: 100%; height: 30px; border: none; padding: 0; cursor: pointer;">
-            </div>
-            <button class="btn btn-red" id="deleteElementBtn" style="margin-top: 15px;">🗑️ 删除当前元素</button>
+            <button class="btn btn-gray" onclick="openCoverEditor()" style="margin-top: 5px; background: #e67e22;">✨ 制作封面 (独立页)</button>
         </div>
 
         <div class="panel-section">
             <h4>5. 画布及全局字体设置</h4>
-            <label style="font-size: 13px;">背景颜色：</label>
-            <input type="color" id="bgColor" value="#f0f0f0" style="width: 100%; height: 30px; border: none; padding: 0; cursor: pointer; margin-bottom: 10px;">
-            
+            <label style="font-size: 13px;">背景颜色：</label><input type="color" id="bgColor" value="#f0f0f0" style="width: 100%; height: 30px; border: none; cursor: pointer; margin-bottom: 10px;">
             <div style="display: flex; gap: 10px;">
-                <div style="flex: 1;">
-                    <label style="font-size: 12px;">表头字号：</label>
-                    <input type="range" id="thFontSize" min="8" max="30" value="14" style="width: 100%;">
-                </div>
-                <div style="flex: 1;">
-                    <label style="font-size: 12px;">数据字号：</label>
-                    <input type="range" id="tdFontSize" min="8" max="30" value="14" style="width: 100%;">
-                </div>
+                <div style="flex: 1;"><label style="font-size: 12px;">表头字号：</label><input type="range" id="thFontSize" min="8" max="30" value="14" style="width: 100%;"></div>
+                <div style="flex: 1;"><label style="font-size: 12px;">数据字号：</label><input type="range" id="tdFontSize" min="8" max="30" value="14" style="width: 100%;"></div>
             </div>
-
             <div style="display: flex; gap: 10px; margin-top: 15px;">
                 <button class="btn btn-gray" onclick="prevSlide()">⬅️ 上一页</button>
                 <button class="btn btn-gray" onclick="nextSlide()">下一页 ➡️</button>
             </div>
-            <div style="text-align: center; margin-top: 10px; font-size: 14px;">
-                第 <input type="number" id="pageInput" value="1" min="1" style="width: 50px; text-align: center; border-radius: 4px; border: 1px solid #ccc;"> / <span id="totalPages">0</span> 页
-            </div>
+            <div style="text-align: center; margin-top: 10px; font-size: 14px;">第 <input type="number" id="pageInput" value="1" min="1" style="width: 50px; text-align: center; border-radius: 4px; border: 1px solid #ccc;"> / <span id="totalPages">0</span> 页</div>
         </div>
         
         <div class="panel-section" style="flex-grow: 1;">
@@ -185,8 +134,59 @@
         </div>
     </div>
 
+    <!-- 独立封面编辑器 -->
+    <div id="coverModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 10000; justify-content: center; align-items: center; flex-direction: column;">
+        <h3 style="color: white; margin-bottom: 10px;">📝 封面制作器</h3>
+        
+        <div style="display: flex; gap: 20px;">
+            <!-- 画布 -->
+            <div style="position: relative; width: 960px; height: 540px; background: #e2e2e2; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);" id="coverCanvas">
+                
+                <div id="coverImgContainer" style="position: absolute; left: 0px; top: 0px; width: 960px; height: 540px; cursor: move; border: 2px dashed transparent; box-sizing: border-box;">
+                    <img id="coverImg" style="width: 100%; height: 100%; object-fit: contain; display: none; pointer-events: none;">
+                    <div class="resize-handle" style="position: absolute; right: 0; bottom: 0; width: 20px; height: 20px; background: #3498db; border-radius: 50%; cursor: se-resize; display: block;"></div>
+                </div>
+                
+                <div id="coverText1" class="cover-text-el" style="position: absolute; left: 120px; top: 220px; font-weight: 900; font-size: 72px; color: #FF1493; display: none; cursor: move; padding: 0px; border: 1px dashed transparent; white-space: nowrap;">湖南省各区县</div>
+                
+                <div id="coverText2" class="cover-text-el" style="position: absolute; left: 80px; top: 350px; font-weight: 900; font-size: 80px; color: #1E90FF; display: none; cursor: move; padding: 0px; border: 1px dashed transparent; white-space: nowrap;">2025年GDP地图</div>
+            </div>
+
+            <!-- 右侧控制面板 -->
+            <div style="background: #2c3e50; padding: 20px; border-radius: 8px; width: 300px; border: 1px solid #3498db; display: flex; flex-direction: column; gap: 15px;">
+                <div>
+                    <label style="color: white; font-size: 14px; display: block; margin-bottom: 5px;">选中文字：</label>
+                    <select id="coverTextSelector" onchange="switchCoverText()" style="width: 100%; padding: 8px; border-radius: 4px; border: none;">
+                        <option value="text1">主标题</option>
+                        <option value="text2">副标题</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="color: white; font-size: 14px; display: block; margin-bottom: 5px;">内容修改：</label>
+                    <input type="text" id="coverTextInput" style="width: 100%; padding: 8px; border-radius: 4px; border: none;" placeholder="在这里修改文字内容" oninput="updateCoverText()">
+                </div>
+                <div>
+                    <label style="color: white; font-size: 14px; display: block; margin-bottom: 5px;">字号大小：</label>
+                    <input type="range" id="coverFontSize" min="20" max="150" value="72" style="width: 100%;" oninput="updateCoverStyle()">
+                </div>
+                <div>
+                    <label style="color: white; font-size: 14px; display: block; margin-bottom: 5px;">文字颜色：</label>
+                    <input type="color" id="coverColor" value="#FF1493" style="width: 100%; height: 40px; border: none; cursor: pointer;" oninput="updateCoverStyle()">
+                </div>
+                <div>
+                    <label style="color: white; font-size: 14px; display: block; margin-bottom: 5px;">封面背景颜色：</label>
+                    <input type="color" id="coverBgColor" value="#e2e2e2" style="width: 100%; height: 40px; border: none; cursor: pointer;" oninput="document.getElementById('coverCanvas').style.backgroundColor = this.value">
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px; display: flex; gap: 20px;">
+            <button class="btn btn-green" style="padding: 10px 30px; font-size: 16px;" onclick="confirmCover()">✅ 保存并关闭</button>
+            <button class="btn btn-gray" style="padding: 10px 30px; font-size: 16px;" onclick="document.getElementById('coverModal').style.display='none'">❌ 取消</button>
+        </div>
+    </div>
+
     <script>
-        // ================= 全局状态 =================
         let slidesData = []; 
         let currentPreviewIndex = 0; 
         let dynamicColumns = []; 
@@ -194,8 +194,245 @@
         let customElements = []; 
         let elementIdCounter = 0;
         let activeEl = null; 
+        let savedCoverData = null; 
+        try { const c = localStorage.getItem('alphardCover'); if (c) savedCoverData = JSON.parse(c); } catch(e) {}
 
-        // ================= 1. 文件读取逻辑 =================
+        // === 画布内的拖动逻辑 ===
+        let isDragging = false, isResizing = false;
+        let startX, startY, startLeft, startTop, startW, startH;
+
+        document.getElementById('canvas').addEventListener('mousedown', function(e) {
+            const draggable = e.target.closest('.draggable');
+            if (!draggable) {
+                document.querySelectorAll('.draggable').forEach(el => el.classList.remove('selected'));
+                activeEl = null;
+                return;
+            }
+            document.querySelectorAll('.draggable').forEach(el => el.classList.remove('selected'));
+            draggable.classList.add('selected');
+            activeEl = draggable;
+
+            if (e.target.classList.contains('resize-handle')) isResizing = true;
+            else isDragging = true;
+
+            startX = e.clientX; startY = e.clientY;
+            startLeft = draggable.offsetLeft; startTop = draggable.offsetTop;
+            
+            if (draggable.id === 'map-container') {
+                let imgDom = document.getElementById('mapImg');
+                startW = draggable.offsetWidth;
+                startH = startW * (imgDom.naturalHeight / imgDom.naturalWidth);
+            } else {
+                startW = draggable.offsetWidth; startH = draggable.offsetHeight;
+            }
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', function(e) {
+            if (!activeEl) return;
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+
+            if (isDragging) {
+                activeEl.style.left = (startLeft + dx) + 'px';
+                activeEl.style.top = (startTop + dy) + 'px';
+            } else if (isResizing) {
+                if (activeEl.id === 'table-container') {
+                    activeEl.style.width = (startW + dx) + 'px';
+                    activeEl.style.height = (startH + dy) + 'px';
+                } else {
+                    let newW = startW + dx;
+                    if (newW < 50) newW = 50;
+                    let ratio = startH / startW;
+                    activeEl.style.width = newW + 'px';
+                    activeEl.style.height = (newW * ratio) + 'px';
+                }
+            }
+        });
+
+        document.addEventListener('mouseup', function() {
+            if (!activeEl) return;
+            if (activeEl.dataset.customId) {
+                let id = parseInt(activeEl.dataset.customId);
+                let elData = customElements.find(el => el.id === id);
+                if (elData) {
+                    elData.x = activeEl.offsetLeft; elData.y = activeEl.offsetTop;
+                    elData.w = activeEl.offsetWidth; elData.h = activeEl.offsetHeight;
+                }
+            }
+            if (activeEl.id === 'table-container') {
+                document.getElementById('tableWidthRange').value = activeEl.offsetWidth;
+                document.getElementById('tableHeightRange').value = activeEl.offsetHeight;
+                renderSlide(currentPreviewIndex); 
+            }
+            isDragging = false;
+            isResizing = false;
+        });
+
+        // === 封面编辑器的拖动与缩放逻辑 ===
+        let coverDragTarget = null;
+        let coverIsResizing = false;
+        let coverStartX, coverStartY, coverStartLeft, coverStartTop, coverStartW, coverStartH;
+
+        document.getElementById('coverCanvas').addEventListener('mousedown', function(e) {
+            const target = e.target;
+            // 判断点击的是图片容器、文字、还是缩放点
+            if (target.id === 'coverImgContainer' || target.classList.contains('cover-text-el') || target.classList.contains('resize-handle')) {
+                if (target.classList.contains('resize-handle')) {
+                    coverDragTarget = target.parentElement;
+                    coverIsResizing = true;
+                } else {
+                    coverDragTarget = target;
+                    coverIsResizing = false;
+                    // 给选中的元素加虚线框，同时取消其他的
+                    document.querySelectorAll('.cover-text-el').forEach(el => el.style.border = '1px dashed transparent');
+                    if(target.classList.contains('cover-text-el')) {
+                        target.style.border = '1px dashed #3498db';
+                        // 同步右侧面板
+                        let selector = document.getElementById('coverTextSelector');
+                        selector.value = target.id === 'coverText1' ? 'text1' : 'text2';
+                        switchCoverText();
+                    }
+                }
+
+                coverStartX = e.clientX;
+                coverStartY = e.clientY;
+                coverStartLeft = parseInt(coverDragTarget.style.left) || 0;
+                coverStartTop = parseInt(coverDragTarget.style.top) || 0;
+                coverStartW = coverDragTarget.offsetWidth;
+                coverStartH = coverDragTarget.offsetHeight;
+
+                document.addEventListener('mousemove', coverMove);
+                document.addEventListener('mouseup', coverUp);
+                e.preventDefault();
+            }
+        });
+
+        function coverMove(e) {
+            if (!coverDragTarget) return;
+            const dx = e.clientX - coverStartX;
+            const dy = e.clientY - coverStartY;
+
+            if (coverIsResizing) {
+                // 缩放地图
+                let newW = coverStartW + dx;
+                if (newW < 50) newW = 50;
+                coverDragTarget.style.width = newW + 'px';
+                coverDragTarget.style.height = 'auto'; // 保持比例
+            } else {
+                // 拖动
+                coverDragTarget.style.left = (coverStartLeft + dx) + 'px';
+                coverDragTarget.style.top = (coverStartTop + dy) + 'px';
+            }
+        }
+
+        function coverUp() {
+            coverDragTarget = null;
+            document.removeEventListener('mousemove', coverMove);
+            document.removeEventListener('mouseup', coverUp);
+        }
+
+        // === 打开封面编辑器 ===
+        function openCoverEditor() {
+            if (slidesData.length === 0) return alert("请先上传地图图片！");
+            document.getElementById('coverModal').style.display = 'flex';
+            
+            // 1. 永远加载最后一张地图
+            let lastImageUrl = slidesData[slidesData.length - 1].imageUrl;
+            let img = document.getElementById('coverImg');
+            img.src = lastImageUrl;
+            img.style.display = 'block';
+            
+            // 2. 恢复尺寸、位置和背景
+            let container = document.getElementById('coverImgContainer');
+            let t1 = document.getElementById('coverText1');
+            let t2 = document.getElementById('coverText2');
+            t1.style.display = 'block';
+            t2.style.display = 'block';
+
+            if (savedCoverData) {
+                container.style.left = savedCoverData.imgX + 'px';
+                container.style.top = savedCoverData.imgY + 'px';
+                container.style.width = savedCoverData.imgW + 'px';
+                container.style.height = (savedCoverData.imgH || 540) + 'px';
+
+                t1.innerText = savedCoverData.texts[0].content;
+                t1.style.left = savedCoverData.texts[0].x + 'px'; t1.style.top = savedCoverData.texts[0].y + 'px';
+                t1.style.fontSize = savedCoverData.texts[0].fontSize + 'px';
+                t1.style.color = savedCoverData.texts[0].color;
+                
+                t2.innerText = savedCoverData.texts[1].content;
+                t2.style.left = savedCoverData.texts[1].x + 'px'; t2.style.top = savedCoverData.texts[1].y + 'px';
+                t2.style.fontSize = savedCoverData.texts[1].fontSize + 'px';
+                t2.style.color = savedCoverData.texts[1].color;
+
+                let savedBg = savedCoverData.bgColor ? '#' + rgbToHex(savedCoverData.bgColor) : '#e2e2e2';
+                document.getElementById('coverCanvas').style.backgroundColor = savedBg;
+                document.getElementById('coverBgColor').value = savedBg;
+            } else {
+                container.style.left = '0px'; container.style.top = '0px';
+                container.style.width = '960px'; container.style.height = '540px';
+                t1.innerText = "湖南省各区县"; t1.style.left = '120px'; t1.style.top = '220px';
+                t2.innerText = "2025年GDP地图"; t2.style.left = '80px'; t2.style.top = '350px';
+                document.getElementById('coverCanvas').style.backgroundColor = '#e2e2e2';
+                document.getElementById('coverBgColor').value = '#e2e2e2';
+            }
+
+            document.getElementById('coverTextSelector').value = 'text1';
+            switchCoverText();
+        }
+
+        // 切换文字并同步到输入框和颜色器
+        function switchCoverText() {
+            let selector = document.getElementById('coverTextSelector').value;
+            let target = document.getElementById(selector === 'text1' ? 'coverText1' : 'coverText2');
+            document.getElementById('coverTextInput').value = target.innerText;
+            document.getElementById('coverColor').value = target.style.color;
+            document.getElementById('coverFontSize').value = parseInt(target.style.fontSize);
+        }
+
+        // 更新文字内容
+        function updateCoverText() {
+            let selector = document.getElementById('coverTextSelector').value;
+            let target = document.getElementById(selector === 'text1' ? 'coverText1' : 'coverText2');
+            target.innerText = document.getElementById('coverTextInput').value;
+        }
+
+        // 更新文字颜色和字号
+        function updateCoverStyle() {
+            let selector = document.getElementById('coverTextSelector').value;
+            let target = document.getElementById(selector === 'text1' ? 'coverText1' : 'coverText2');
+            let color = document.getElementById('coverColor').value;
+            let size = document.getElementById('coverFontSize').value;
+            
+            target.style.color = color;
+            target.style.fontSize = size + 'px';
+        }
+
+        // === 保存封面 ===
+        async function confirmCover() {
+            let text1 = document.getElementById('coverText1');
+            let text2 = document.getElementById('coverText2');
+            let container = document.getElementById('coverImgContainer');
+
+            savedCoverData = {
+                bgColor: '#' + rgbToHex(document.getElementById('coverCanvas').style.backgroundColor || '#e2e2e2'),
+                imgX: parseInt(container.style.left) || 0,
+                imgY: parseInt(container.style.top) || 0,
+                imgW: parseInt(container.style.width) || 960,
+                imgH: parseInt(container.style.height) || 540,
+                texts: [
+                    { content: text1.innerText, x: parseInt(text1.style.left), y: parseInt(text1.style.top), fontSize: parseInt(text1.style.fontSize), color: text1.style.color },
+                    { content: text2.innerText, x: parseInt(text2.style.left), y: parseInt(text2.style.top), fontSize: parseInt(text2.style.fontSize), color: text2.style.color }
+                ]
+            };
+            
+            localStorage.setItem('alphardCover', JSON.stringify(savedCoverData));
+            document.getElementById('coverModal').style.display = 'none';
+            alert("✅ 封面已保存！点击导出，它会自动出现在 PPT 第一页。");
+        }
+
+        // 读取上传的文件
         document.getElementById('folderInput').addEventListener('change', function(e) {
             const files = Array.from(e.target.files).filter(f => /\.(jpg|jpeg|png)$/i.test(f.name));
             files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
@@ -215,7 +452,6 @@
                 const parsedData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 });
                 
                 let headers = (parsedData[0] || []).filter(h => h !== undefined && h !== null && h !== '');
-                // 强制将表头转字符串，防止因为表头是数字或特殊字符导致 replace 报错
                 dynamicColumns = headers.map(h => ({ name: String(h), width: parseFloat((100 / headers.length).toFixed(1)) }));
                 renderColConfig();
 
@@ -228,7 +464,6 @@
                         cleanData.push({ rowCells: rowData });
                     }
                 }
-
                 window.currentCleanData = cleanData; 
                 if (slidesData.length > 0) generateSlideData(cleanData);
                 else alert("请先上传地图图片！");
@@ -245,7 +480,7 @@
                 let div = document.createElement('div');
                 div.className = 'col-config';
                 div.innerHTML = `
-                    <textarea oninput="updateColName(${idx}, this.value)" rows="1">${col.name}</textarea>
+                    <textarea oninput="updateColName(${idx}, this.value)" rows="2" style="font-size: 12px;" placeholder="输入表头内容 (支持回车换行，支持 [20]文字 语法)">${col.name}</textarea>
                     <input type="number" value="${col.width}" oninput="updateColWidth(${idx}, this.value)"> %
                 `;
                 list.appendChild(div);
@@ -254,29 +489,24 @@
         window.updateColName = function(idx, val) { dynamicColumns[idx].name = val; renderSlide(currentPreviewIndex); };
         window.updateColWidth = function(idx, val) { dynamicColumns[idx].width = parseFloat(val) || 0; renderSlide(currentPreviewIndex); };
 
-        // ================= 2. 数据处理与滚动逻辑 =================
         function generateSlideData(cleanData) {
             const totalPages = slidesData.length;
             const totalData = cleanData.length;
             const emptyPages = parseInt(document.getElementById('emptyPagesInput').value) || 0;
-            
             let maxRows = 10, filledRows = 0, isNewRound = true, bottomRank = totalData;
 
             for (let slideIdx = 0; slideIdx < totalPages; slideIdx++) {
                 if (slideIdx < emptyPages) { slidesData[slideIdx].tableData = []; continue; }
                 if (bottomRank < 1) { slidesData[slideIdx].tableData = []; continue; }
-
                 let currentSlideData = [];
                 if (isNewRound) { filledRows = 1; isNewRound = false; } 
                 else if (filledRows < maxRows) filledRows++;
                 if (bottomRank - filledRows + 1 < 1) filledRows = bottomRank;
-
                 for (let i = 1; i <= filledRows; i++) {
                     let srcRowIdx = bottomRank - i; 
                     if (srcRowIdx >= 0) currentSlideData.unshift(cleanData[srcRowIdx]); 
                 }
                 slidesData[slideIdx].tableData = currentSlideData;
-
                 if (filledRows === maxRows) {
                     let topRank = bottomRank - maxRows + 1;
                     if (topRank % 10 === 1 || topRank === 1) { bottomRank = topRank - 1; isNewRound = true; } 
@@ -286,7 +516,6 @@
             renderSlide(currentPreviewIndex);
         }
 
-        // ================= 3. 渲染网页 =================
         function renderSlide(index) {
             const slide = slidesData[index];
             if (!slide) return;
@@ -298,12 +527,10 @@
             const thead = document.getElementById('dynamicThead');
             const tbody = document.querySelector('#previewTable tbody');
             const tableEl = document.getElementById('table-container');
-            
             const rowHeight = tableEl.offsetHeight / 11;
 
             const redPages = parseInt(document.getElementById('redPagesInput').value) || 0;
             const isRedMode = (index >= slidesData.length - redPages) && redPages > 0;
-            
             const bgHeader = isRedMode ? '#FF0001' : '#4C8714';
             const bgOdd = isRedMode ? '#F9D7CD' : '#E2F0D9';
             const bgEven = '#ffffff';
@@ -316,10 +543,16 @@
                 let tr = document.createElement('tr');
                 dynamicColumns.forEach(col => {
                     let th = document.createElement('th');
-                    th.innerHTML = col.name.replace(/\n/g, '<br>');
+                    if (col.name.includes('[')) {
+                        th.innerHTML = col.name.replace(/\n/g, '<br>').replace(/\[(\d+)\]([^\[]*)/g, function(match, size, content) {
+                            return `<span style="font-size:${size}px;">${content}</span>`;
+                        });
+                    } else {
+                        th.innerHTML = col.name.replace(/\n/g, '<br>');
+                        th.style.fontSize = globalStyle.thFontSize + 'px';
+                    }
                     th.style.width = col.width + '%';
                     th.style.height = rowHeight + 'px';
-                    th.style.fontSize = globalStyle.thFontSize + 'px';
                     th.style.backgroundColor = bgHeader;
                     th.style.borderColor = borderColor;
                     th.style.color = headerTextColor;
@@ -352,18 +585,10 @@
                         let cellBgColor = bgColor;
                         let cellText = String(c);
                         let cellFontColor = textColor;
-                        
-                        if (idx === 0 && /[^\d]1$/.test(cellText)) {
-                         cellBgColor = '#FFFF00';
-                        }
-                        
-                        if (isProvRed && provName !== '' && cellText.includes(provName)) {
-                            cellFontColor = '#FF0000';
-                        }
-
+                        if (idx === 0 && /[^\d]1$/.test(cellText)) cellBgColor = '#FFFF00';
+                        if (isProvRed && provName !== '' && cellText.includes(provName)) cellFontColor = '#FF0000';
                         tdHtml += `<td style="font-size:${globalStyle.tdFontSize}px; height:${rowHeight}px; background-color:${cellBgColor}; border-color:${borderColor}; color:${cellFontColor}">${c}</td>`;
                     });
-
                     tr.innerHTML = tdHtml;
                     tbody.appendChild(tr);
                 });
@@ -382,224 +607,6 @@
             if (targetPage > slidesData.length) targetPage = slidesData.length;
             currentPreviewIndex = targetPage - 1;
             renderSlide(currentPreviewIndex);
-        });
-
-        // ================= 4. 图层拖拽与缩放系统 =================
-        let isDragging = false, isResizing = false;
-        let startX, startY, startLeft, startTop, startW, startH;
-
-        document.getElementById('canvas').addEventListener('mousedown', function(e) {
-            const draggable = e.target.closest('.draggable');
-            if (!draggable) {
-                document.querySelectorAll('.draggable').forEach(el => el.classList.remove('selected'));
-                activeEl = null;
-                document.getElementById('elementConfigPanel').style.display = 'none';
-                return;
-            }
-
-            document.querySelectorAll('.draggable').forEach(el => el.classList.remove('selected'));
-            draggable.classList.add('selected');
-            activeEl = draggable;
-
-            if (e.target.classList.contains('resize-handle')) isResizing = true;
-            else isDragging = true;
-
-            startX = e.clientX; startY = e.clientY;
-            startLeft = draggable.offsetLeft; startTop = draggable.offsetTop;
-            
-            if (draggable.id === 'map-container') {
-                // 如果是地图，强制用图片真实比例去算
-                let imgDom = document.getElementById('mapImg');
-                startW = draggable.offsetWidth;
-                startH = startW * (imgDom.naturalHeight / imgDom.naturalWidth);
-            } else {
-                startW = draggable.offsetWidth; startH = draggable.offsetHeight;
-            }
-            
-            const panel = document.getElementById('elementConfigPanel');
-            const textSizeControl = document.getElementById('textSizeControl');
-            const textColorControl = document.getElementById('textColorControl');
-
-            if (draggable.dataset.customId) {
-                const id = parseInt(draggable.dataset.customId);
-                const elData = customElements.find(el => el.id === id);
-                panel.style.display = 'block';
-                if (elData && elData.type === 'text') {
-                    textSizeControl.style.display = 'block';
-                    textColorControl.style.display = 'block';
-                    document.getElementById('selectedTextSize').value = elData.fontSize;
-                    const textContent = draggable.querySelector('.text-content');
-                    if (textContent) {
-                        const computedColor = window.getComputedStyle(textContent).color;
-                        const rgb = computedColor.match(/\d+/g);
-                        if (rgb && rgb.length >= 3) {
-                            const hex = '#' + rgb.slice(0, 3).map(x => parseInt(x).toString(16).padStart(2, '0')).join('');
-                            document.getElementById('selectedTextColor').value = hex;
-                        }
-                    }
-                } else {
-                    textSizeControl.style.display = 'none';
-                    textColorControl.style.display = 'none';
-                }
-            } else {
-                panel.style.display = 'none';
-            }
-            e.preventDefault();
-        });
-
-        document.addEventListener('mousemove', function(e) {
-            if (!activeEl) return;
-            const dx = e.clientX - startX;
-            const dy = e.clientY - startY;
-
-            if (isDragging) {
-                activeEl.style.left = (startLeft + dx) + 'px';
-                activeEl.style.top = (startTop + dy) + 'px';
-            } else if (isResizing) {
-                if (activeEl.id === 'table-container') {
-                    // 表格还是可以自由宽高
-                    activeEl.style.width = (startW + dx) + 'px';
-                    activeEl.style.height = (startH + dy) + 'px';
-                } else {
-                    // 地图、文字、图片：只要拉动，必须等比缩放（只看宽度变化）
-                    let newW = startW + dx;
-                    if (newW < 50) newW = 50;
-                    let ratio = startH / startW;
-                    activeEl.style.width = newW + 'px';
-                    activeEl.style.height = (newW * ratio) + 'px';
-                }
-            }
-        });
-
-        document.addEventListener('mouseup', function() {
-            if (!activeEl) return;
-            
-            if (activeEl.dataset.customId) {
-                let id = parseInt(activeEl.dataset.customId);
-                let elData = customElements.find(el => el.id === id);
-                if (elData) {
-                    elData.x = activeEl.offsetLeft;
-                    elData.y = activeEl.offsetTop;
-                    elData.w = activeEl.offsetWidth;
-                    elData.h = activeEl.offsetHeight;
-                }
-            }
-
-            if (activeEl.id === 'table-container') {
-                document.getElementById('tableWidthRange').value = activeEl.offsetWidth;
-                document.getElementById('tableHeightRange').value = activeEl.offsetHeight;
-                renderSlide(currentPreviewIndex); 
-            }
-            isDragging = false;
-            isResizing = false;
-        });
-
-        // ================= 5. 监听文字、字号、颜色、删除 =================
-        document.getElementById('selectedTextSize').addEventListener('input', (e) => {
-            if (!activeEl || !activeEl.dataset.customId) return;
-            const newSize = parseInt(e.target.value);
-            const id = parseInt(activeEl.dataset.customId);
-            
-            const textContent = activeEl.querySelector('.text-content');
-            if (textContent) textContent.style.fontSize = newSize + 'px';
-            
-            let elData = customElements.find(el => el.id === id);
-            if (elData) {
-                elData.fontSize = newSize;
-                setTimeout(() => {
-                    elData.w = activeEl.offsetWidth;
-                    elData.h = activeEl.offsetHeight;
-                }, 50);
-            }
-        });
-
-        document.getElementById('selectedTextColor').addEventListener('input', (e) => {
-            if (!activeEl || !activeEl.dataset.customId) return;
-            const newColor = e.target.value; 
-            const id = parseInt(activeEl.dataset.customId);
-            
-            let elData = customElements.find(el => el.id === id);
-            if (!elData) return;
-
-            // 把颜色直接存入 color 字段（这是关键，之前的代码存的是 hexColor，读取时找的是 color）
-            elData.color = newColor.replace('#', '').toUpperCase();
-
-            const textContent = activeEl.querySelector('.text-content');
-            if (textContent) {
-                if (!elData.text.includes('[')) {
-                    textContent.style.color = newColor;
-                }
-            }
-        });
-
-        document.getElementById('deleteElementBtn').addEventListener('click', () => {
-            if (!activeEl || !activeEl.dataset.customId) return;
-            activeEl.remove();
-            const id = parseInt(activeEl.dataset.customId);
-            customElements = customElements.filter(el => el.id !== id);
-            document.getElementById('elementConfigPanel').style.display = 'none';
-            activeEl = null;
-        });
-
-        document.addEventListener('keydown', (e) => {
-            if (activeEl && activeEl.dataset.customId && (e.key === 'Delete' || e.key === 'Backspace')) {
-                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-                activeEl.remove();
-                const id = parseInt(activeEl.dataset.customId);
-                customElements = customElements.filter(el => el.id !== id);
-                document.getElementById('elementConfigPanel').style.display = 'none';
-                activeEl = null;
-            }
-        });
-
-        // ================= 6. 添加自定义元素 =================
-        function parseRichText(text) {
-            const colorMap = {
-                'red': '#FF0000', 'blue': '#0000FF', 'green': '#00FF00',
-                'yellow': '#FFFF00', 'purple': '#800080', 'orange': '#FFA500',
-                'pink': '#FFC0CB', 'black': '#000000', 'white': '#FFFFFF'
-            };
-            return text.replace(/\[([a-zA-Z#0-9]+)\](.*?)(?=\[|$)/g, function(match, colorStr, content) {
-                let hexColor = colorMap[colorStr.toLowerCase()] || (colorStr.startsWith('#') ? colorStr : '#' + colorStr);
-                return `<span style="color:${hexColor};">${content}</span>`;
-            });
-        }
-
-        function createCustomElement(type, content = '') {
-            elementIdCounter++;
-            let id = elementIdCounter;
-            let el = document.createElement('div');
-            el.className = 'draggable';
-            el.dataset.customId = id;
-            el.style.left = '100px';
-            el.style.top = '100px';
-            el.style.zIndex = 999;
-            el.innerHTML = `<div class="resize-handle"></div>`;
-
-            if (type === 'text') {
-                let defaultSize = parseInt(document.getElementById('defaultTextSize').value) || 20;
-                let initialColor = document.getElementById('selectedTextColor').value || '#000000';
-                el.innerHTML += `<div class="text-content" style="font-weight:bold; padding:5px; font-size:${defaultSize}px; white-space:pre-wrap; font-family:'Microsoft YaHei'; line-height: 1.2; color:${initialColor};">${parseRichText(content)}</div>`;
-                customElements.push({ id, type: 'text', text: content, x: 100, y: 100, w: 200, h: 50, fontSize: defaultSize, hexColor: initialColor.replace('#', '').toUpperCase() });
-            } else if (type === 'image') {
-                el.innerHTML += `<img src="${content}" style="width:100%; height:100%; object-fit:contain; pointer-events:none;">`;
-                customElements.push({ id, type: 'image', imgSrc: content, x: 100, y: 100, w: 150, h: 100 });
-            }
-            document.getElementById('canvas').appendChild(el);
-        }
-
-        function addTextElement() {
-            let text = prompt("请输入文字（支持多色语法，例如：[red]红字[blue]蓝字）：", "新增文字");
-            if (text === null || text.trim() === '') return;
-            createCustomElement('text', text);
-        }
-
-        document.getElementById('imageUploader').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(evt) { createCustomElement('image', evt.target.result); };
-            reader.readAsDataURL(file);
         });
 
         document.getElementById('bgColor').addEventListener('input', (e) => { 
@@ -621,65 +628,131 @@
             if (window.currentCleanData) generateSlideData(window.currentCleanData);
         });
 
-        document.getElementById('redPagesInput').addEventListener('input', () => {
-            renderSlide(currentPreviewIndex);
-        });
+        document.getElementById('redPagesInput').addEventListener('input', () => { renderSlide(currentPreviewIndex); });
+        document.getElementById('thFontSize').addEventListener('input', (e) => { globalStyle.thFontSize = parseInt(e.target.value); renderSlide(currentPreviewIndex); });
+        document.getElementById('tdFontSize').addEventListener('input', (e) => { globalStyle.tdFontSize = parseInt(e.target.value); renderSlide(currentPreviewIndex); });
 
-        document.getElementById('thFontSize').addEventListener('input', (e) => {
-            globalStyle.thFontSize = parseInt(e.target.value);
-            renderSlide(currentPreviewIndex);
-        });
-
-        document.getElementById('tdFontSize').addEventListener('input', (e) => {
-            globalStyle.tdFontSize = parseInt(e.target.value);
-            renderSlide(currentPreviewIndex);
-        });
-
-        // ================= 7. 导出 PPT (终极稳如狗版) =================
+        // === 导出 PPT ===
         document.getElementById('exportBtn').addEventListener('click', async () => {
             if (slidesData.length === 0) return alert("请先上传地图图片！");
 
             const pptx = new PptxGenJS();
             pptx.defineLayout({ name: 'CUSTOM_16x9', width: 10, height: 5.625 });
             pptx.layout = 'CUSTOM_16x9';
-
             const PX_TO_INCH = 10 / 960; 
             const redPages = parseInt(document.getElementById('redPagesInput').value) || 0;
             const emptyPages = parseInt(document.getElementById('emptyPagesInput').value) || 0;
-            const totalData = window.currentCleanData ? window.currentCleanData.length : 0;
-            
-            // 每一页都在重新读取地图与表格的父容器位置，绝不套用第一页死数据
             const mapEl = document.getElementById('map-container');
             const tableEl = document.getElementById('table-container');
             const mapImgDom = document.getElementById('mapImg');
 
             document.getElementById('status').innerText = "正在生成PPT...";
 
+            // ================= 生成第一页：独立封面 =================
+            if (savedCoverData) {
+                let coverSlide = pptx.addSlide();
+                coverSlide.background = { color: rgbToHex(savedCoverData.bgColor || '#e2e2e2') };
+                
+                let coverBase64 = '';
+                if (slidesData.length > 0) {
+                    coverBase64 = await convertToBase64(slidesData[slidesData.length - 1].imageUrl);
+                }
+
+                if (coverBase64) {
+                    let cImg = new Image();
+                    cImg.src = coverBase64;
+                    await new Promise(res => cImg.onload = res);
+                    let realW = cImg.width;
+                    let realH = cImg.height;
+
+                    let boxW = savedCoverData.imgW || 960;
+                    let boxH = savedCoverData.imgH || 540;
+                    let imgRatio = realW / realH;
+                    let boxRatio = boxW / boxH;
+                    let renderW, renderH;
+                    
+                    if (imgRatio > boxRatio) {
+                        renderW = boxW;
+                        renderH = boxW / imgRatio;
+                    } else {
+                        renderH = boxH;
+                        renderW = boxH * imgRatio;
+                    }
+
+                    let offsetX = (boxW - renderW) / 2;
+                    let offsetY = (boxH - renderH) / 2;
+
+                    coverSlide.addImage({ 
+                        data: coverBase64, 
+                        x: ((savedCoverData.imgX || 0) + offsetX) * PX_TO_INCH, 
+                        y: ((savedCoverData.imgY || 0) + offsetY) * PX_TO_INCH, 
+                        w: renderW * PX_TO_INCH, 
+                        h: renderH * PX_TO_INCH, 
+                        sizing: { type: 'crop', w: renderW * PX_TO_INCH, h: renderH * PX_TO_INCH }
+                    });
+                }
+
+                savedCoverData.texts.forEach(t => {
+                    let baseFontPt = Math.floor(t.fontSize * 0.75);
+                    // 向下微调位置
+                    let adjustedY = (t.y * PX_TO_INCH) + (baseFontPt * 0.001); 
+                    let x = t.x * PX_TO_INCH;
+                    let hexColor = rgbToHex(t.color);
+                    
+                    // 【关键参数】控制描边粗细：0.0015 大约是 1.2 磅的细边
+                    // 如果觉得不够粗，可以改成 0.002 或 0.0025
+                    let offset = baseFontPt * 0.0015; 
+                    let dirs = [];
+                    
+                    // 使用 72 个方向（每 5 度一个点），密度极高，肉眼看起来绝对圆滑无锯齿
+                    for(let i = 0; i < 72; i++) {
+                        let angle = (i * Math.PI * 2) / 72;
+                        dirs.push([Math.cos(angle) * offset, Math.sin(angle) * offset]);
+                    }
+
+                    // 1. 画 72 层纯白实心底层
+                    dirs.forEach(dir => {
+                        coverSlide.addText(t.content, { 
+                            x: x + dir[0], 
+                            y: adjustedY + dir[1], 
+                            w: 10, h: 1.5, 
+                            color: 'FFFFFF', 
+                            fontSize: baseFontPt, 
+                            bold: true, 
+                            fontFace: 'Microsoft YaHei', 
+                            wrap: false, autoFit: false, 
+                            align: 'left', valign: 'top', margin: 0, lineSpacingMultiple: 1.0 
+                        });
+                    });
+
+                    // 2. 顶层彩色字
+                    coverSlide.addText(t.content, { 
+                        x: x, y: adjustedY, 
+                        w: 10, h: 1.5, 
+                        color: hexColor, 
+                        fontSize: baseFontPt, 
+                        bold: true, fontFace: 'Microsoft YaHei', 
+                        wrap: false, autoFit: false, 
+                        align: 'left', valign: 'top', margin: 0, lineSpacingMultiple: 1.0 
+                    });
+                });
+            }
+
+            // ================= 生成数据页 =================
             for (let i = 0; i < slidesData.length; i++) {
                 let slide = slidesData[i];
                 let pptSlide = pptx.addSlide();
-
                 pptSlide.background = { color: globalStyle.bgColor.replace('#', '') };
 
-                // 1. 放入地图 (彻底忽略 PPT 的边距限制)
+                // 1. 放入地图
                 const base64Img = await convertToBase64(slide.imageUrl);
                 let realW = mapImgDom.naturalWidth || 1;
                 let realH = mapImgDom.naturalHeight || 1;
-                
                 let mapX = mapEl.offsetLeft * PX_TO_INCH;
                 let mapY = mapEl.offsetTop * PX_TO_INCH;
                 let mapW = mapEl.offsetWidth * PX_TO_INCH;
                 let mapH = mapW * (realH / realW); 
-
-                pptSlide.addImage({ 
-                    data: base64Img, 
-                    x: mapX, 
-                    y: mapY, 
-                    w: mapW, 
-                    h: mapH,
-                    // 强制绝对定位，不允许它自动调整
-                    sizing: { type: 'crop', w: mapW, h: mapH } 
-                });
+                pptSlide.addImage({ data: base64Img, x: mapX, y: mapY, w: mapW, h: mapH, sizing: { type: 'crop', w: mapW, h: mapH } });
 
                 // 2. 放入表格
                 if (dynamicColumns.length > 0) {
@@ -687,68 +760,52 @@
                     let tY = tableEl.offsetTop * PX_TO_INCH;
                     let tW = tableEl.offsetWidth * PX_TO_INCH;
                     let tH = tableEl.offsetHeight * PX_TO_INCH;
-                    
-                    // 在导出时，强行修正行高，把挤压掉的物理高度补回来
                     let rowH = (tH / 11) * 1.12; 
                     let colWidths = dynamicColumns.map(col => tW * (col.width / 100));
                     let colXOffsets = [0];
-                    for(let c=0; c<colWidths.length-1; c++) {
-                        colXOffsets.push(colXOffsets[c] + colWidths[c]);
-                    }
+                    for(let c=0; c<colWidths.length-1; c++) colXOffsets.push(colXOffsets[c] + colWidths[c]);
 
                     const isRedMode = (i >= slidesData.length - redPages) && redPages > 0;
                     let headerColor = isRedMode ? 'FF0001' : '4C8714';
                     let oddColor = isRedMode ? 'F9D7CD' : 'E2F0D9';
                     let evenColor = 'FFFFFF';
                     let lineColor = isRedMode ? 'FF7774' : '8BB06B';
-
                     const emptyRowCount = 10 - slide.tableData.length;
                     let dataStartRow = 1 + emptyRowCount; 
 
                     for(let r=0; r<11; r++) {
                         for(let c=0; c<dynamicColumns.length; c++) {
                             let fillColor = evenColor;
-                            if(r === 0) {
-                                fillColor = headerColor;
-                            } else {
+                            if(r === 0) fillColor = headerColor;
+                            else {
                                 fillColor = (r % 2 !== 0) ? oddColor : evenColor;
-                                
                                 if (r >= dataStartRow) {
                                     let dataIdx = r - dataStartRow;
                                     if (slide.tableData[dataIdx]) {
-                                        let rowData = slide.tableData[dataIdx];
-                                        let cellText = String(rowData.rowCells[c]); 
-                                        
-                                        if (dataIdx === 0 && /[^\d]1$/.test(cellText)) {
-                                            fillColor = 'FFFF00'; 
-                                        }
+                                        let cellText = String(slide.tableData[dataIdx].rowCells[c]); 
+                                        if (dataIdx === 0 && /[^\d]1$/.test(cellText)) fillColor = 'FFFF00'; 
                                     }
                                 }
                             }
-
-                            pptSlide.addShape(pptx.ShapeType.rect, {
-                                x: tX + colXOffsets[c], 
-                                y: tY + (r * rowH), 
-                                w: colWidths[c], 
-                                h: rowH,
-                                fill: { color: fillColor },
-                                line: { color: lineColor, width: 1 } 
-                            });
+                            pptSlide.addShape(pptx.ShapeType.rect, { x: tX + colXOffsets[c], y: tY + (r * rowH), w: colWidths[c], h: rowH, fill: { color: fillColor }, line: { color: lineColor, width: 1 } });
                         }
                     }
 
                     dynamicColumns.forEach((col, c) => {
-                        pptSlide.addText(col.name, {
-                            x: tX + colXOffsets[c], y: tY, 
-                            w: colWidths[c], h: rowH,
-                            fontSize: Math.floor(globalStyle.thFontSize * 0.75),
-                            color: 'FFFFFF', bold: true, align: 'center', valign: 'middle',
-                            fontFace: 'Microsoft YaHei', 
-                            margin: 0,
-                            valign: 'middle',
-                            // === 关键修复：强制撑开行距 ===
-                            lineSpacingMultiple: 1.2 
-                        });
+                        let textRuns = [];
+                        let defaultPt = Math.floor(globalStyle.thFontSize * 0.75);
+                        let plainText = col.name.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+                        if (!plainText.includes('[')) {
+                            textRuns.push({ text: plainText, options: { color: 'FFFFFF', fontSize: defaultPt, bold: true, fontFace: 'Microsoft YaHei' } });
+                        } else {
+                            const regex = /\[(\d+)\]([^\[]*)/g;
+                            let match;
+                            while ((match = regex.exec(plainText)) !== null) {
+                                let fontPt = Math.floor(parseInt(match[1]) * 0.75);
+                                textRuns.push({ text: match[2], options: { color: 'FFFFFF', fontSize: fontPt, bold: true, fontFace: 'Microsoft YaHei' } });
+                            }
+                        }
+                        pptSlide.addText(textRuns, { x: tX + colXOffsets[c], y: tY, w: colWidths[c], h: rowH, align: 'center', valign: 'middle', margin: 0, lineSpacingMultiple: 1.2 });
                     });
 
                     const isProvRedExport = document.getElementById('provincialCapToggle').checked;
@@ -758,128 +815,30 @@
                         let r = dataStartRow + idx;
                         row.rowCells.forEach((cellText, c) => {
                             let cellFontColor = '000000';
-                            if (isProvRedExport && provNameExport !== '' && String(cellText).includes(provNameExport)) {
-                                cellFontColor = 'FF0000';
-                            }
-
-                            pptSlide.addText(cellText, {
-                                x: tX + colXOffsets[c], y: tY + (r * rowH), 
-                                w: colWidths[c], h: rowH,
-                                fontSize: Math.floor(globalStyle.tdFontSize * 0.75),
-                                color: cellFontColor,
-                                bold: true, align: 'center', valign: 'middle',
-                                fontFace: 'Microsoft YaHei', 
-                                margin: 0,
-                                valign: 'middle',
-                                // === 关键修复：强制撑开行距 ===
-                                lineSpacingMultiple: 1.2 
-                            });
+                            if (isProvRedExport && provNameExport !== '' && String(cellText).includes(provNameExport)) cellFontColor = 'FF0000';
+                            pptSlide.addText(cellText, { x: tX + colXOffsets[c], y: tY + (r * rowH), w: colWidths[c], h: rowH, fontSize: Math.floor(globalStyle.tdFontSize * 0.75), color: cellFontColor, bold: true, align: 'center', valign: 'middle', fontFace: 'Microsoft YaHei', margin: 0, valign: 'middle', lineSpacingMultiple: 1.2 });
                         });
                     });
                 }
-
-                // 3. 放入自定义文字 (暴力修复颜色，绝不瞎猜)
-                for (let elData of customElements) {
-                    if (elData.type === 'text') {
-                        let textRuns = [];
-                        let customFontPt = Math.floor(elData.fontSize * 0.75);
-                        let plainText = elData.text;
-
-                        if (plainText.includes('[')) {
-                            // 中括号多色解析
-                            const colorMap = {
-                                'red': 'FF0000', 'blue': '0000FF', 'green': '00FF00',
-                                'yellow': 'FFFF00', 'purple': '800080', 'orange': 'FFA500',
-                                'pink': 'FFC0CB', 'black': '000000', 'white': 'FFFFFF'
-                            };
-                            const regex = /\[([a-zA-Z#0-9]+)\](.*?)(?=\[|$)/g;
-                            let match;
-                            while ((match = regex.exec(plainText)) !== null) {
-                                let colorStr = match[1].toLowerCase();
-                                let hexColor = colorMap[colorStr] || (colorStr.startsWith('#') ? colorStr.replace('#','').toUpperCase() : colorStr.toUpperCase());
-                                textRuns.push({ 
-                                    text: match[2], 
-                                    options: { color: hexColor, fontSize: customFontPt, bold: true, fontFace: 'Microsoft YaHei' } 
-                                });
-                            }
-                        } else {
-                            // 直接读取 elData.color，如果在取色器里改过，这里就有值
-                            let finalColorHex = elData.color || '000000';
-                            
-                            if (!elData.color) {
-                                // 如果没改过，去网页上抓真实颜色兜底
-                                let domTextEl = document.querySelector(`[data-custom-id="${elData.id}"] .text-content`);
-                                if (domTextEl) {
-                                    let computedColor = window.getComputedStyle(domTextEl).color;
-                                    let rgbMatches = computedColor.match(/\d+/g);
-                                    if (rgbMatches && rgbMatches.length >= 3) {
-                                        finalColorHex = rgbMatches.slice(0, 3).map(x => parseInt(x).toString(16).padStart(2, '0')).join('').toUpperCase();
-                                    }
-                                }
-                            }
-
-                            textRuns.push({ 
-                                text: plainText, 
-                                options: { color: finalColorHex, fontSize: customFontPt, bold: true, fontFace: 'Microsoft YaHei' } 
-                            });
-                        }
-
-                        let safeHeight = (customFontPt * 1.8 * textRuns.length + 10) * PX_TO_INCH;
-
-                        pptSlide.addText(textRuns, {
-                            x: elData.x * PX_TO_INCH, 
-                            y: elData.y * PX_TO_INCH,
-                            w: elData.w * PX_TO_INCH, 
-                            h: safeHeight,
-                            valign: 'top', margin: 0
-                        });
-                    } else if (elData.type === 'image') {
-                        const elImg = new Image();
-                        elImg.src = elData.imgSrc;
-                        await new Promise(res => elImg.onload = res);
-                        let imgRatio = elImg.height / elImg.width;
-                        
-                        let finalW = elData.w * PX_TO_INCH;
-                        let finalH = finalW * imgRatio;
-
-                        pptSlide.addImage({
-                            data: elData.imgSrc,
-                            x: elData.x * PX_TO_INCH, 
-                            y: elData.y * PX_TO_INCH,
-                            w: finalW, h: finalH
-                        });
-                    }
-                }
             }
-
             await pptx.writeFile({ fileName: "alphard.pptx" });
             document.getElementById('status').innerText = "✅ PPT 已生成并下载！";
         });
 
-                // ================= 生成并下载 Excel 样例 =================
         function downloadSampleExcel() {
-            // 用你刚才发我的真实数据作为样例
-            const sampleData = [
-                ["排名", "地级", "县级", "人均GDP"],
-                ["1", "成都1", "武侯区", "228529"],
-                ["2", "宜宾1", "翠屏区", "180273"],
-                ["3", "成都2", "青羊区", "177609"],
-                ["4", "成都3", "锦江区", "170071"],
-                ["5", "乐山1", "沙湾区", "157350"],
-                ["6", "成都4", "新津区", "151764"],
-                ["7", "成都5", "青白江区", "149992"],
-                ["8", "攀枝花1", "东区", "140698"],
-                ["9", "成都6", "金牛区", "136360"],
-                ["10", "德阳1", "什邡市", "135606"]
-            ];
-
-            // 使用 SheetJS 将二维数组转换为真正的 xlsx 文件
+            const sampleData = [["排名", "地级", "县级", "人均GDP"],["1", "成都1", "武侯区", "228529"],["2", "宜宾1", "翠屏区", "180273"]];
             const ws = XLSX.utils.aoa_to_sheet(sampleData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-
-            // 触发浏览器下载
             XLSX.writeFile(wb, "数据表格样例.xlsx");
+        }
+
+        function rgbToHex(c) {
+            if (!c) return '000000';
+            if (c.startsWith('#')) return c.replace('#','').toUpperCase();
+            let m = c.match(/\d+/g);
+            if (!m) return '000000';
+            return m.slice(0,3).map(x => ('0' + parseInt(x).toString(16)).slice(-2)).join('').toUpperCase();
         }
 
         function convertToBase64(url) {
