@@ -27,7 +27,7 @@
         .draggable:active { cursor: grabbing; }
         .draggable.selected { outline: 2px dashed #3498db; }
         #map-container.selected { outline: 2px dashed #3498db; outline-offset: 2px; min-height: 20px; }
-        .resize-handle { position: absolute; right: -5px; bottom: -5px; width: 10px; height: 10px; background: #3498db; cursor: se-resize; display: none; border-radius: 50%; }
+        .resize-handle { position: absolute; right: -5px; bottom: -5px; width: 10px; height: 10px; background: #3498db; cursor: se-resize; display: none; border-radius: 50%; z-index: 1000;}
         .draggable.selected .resize-handle { display: block; }
         #map-container { left: 50px; top: 100px; width: 450px; min-height: 50px; } #map-container.selected { box-shadow: 0 0 0 2px #3498db; }
         #mapImg { width: 100%; height: auto; display: block; pointer-events: none; }
@@ -38,6 +38,9 @@
         .data-table tbody tr:nth-child(odd) td { background-color: #E2F0D9; }
         .data-table tbody tr:nth-child(even) td { background-color: #ffffff; }
         #status { font-size: 12px; color: #bdc3c7; margin-top: 10px; white-space: pre-wrap;}
+        
+        /* 选中元素编辑面板 */
+        #elementConfigPanel { display: none; border: 2px solid #f1c40f; background: #2c3e50; padding: 15px; border-radius: 8px; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -97,6 +100,25 @@
             <button class="btn btn-gray" onclick="openCoverEditor()" style="margin-top: 5px; background: #e67e22;">✨ 制作封面 (独立页)</button>
         </div>
 
+        <!-- 选中元素控制面板 -->
+        <div class="panel-section" id="elementConfigPanel">
+            <h4 style="color: #f1c40f;">✏️ 编辑当前文字</h4>
+            <div style="font-size: 12px; color: #bdc3c7; margin-bottom: 5px;">
+                💡 在下方框内<b>随意框选文字</b>，可以给它们单独设置样式。
+            </div>
+            <div id="textContentEditor" contenteditable="true" style="width: 100%; min-height: 80px; max-height: 200px; overflow-y: auto; background: #fff; color: #000; padding: 8px; border-radius: 4px; font-family: 'Microsoft YaHei'; font-size: 16px; outline: none; word-break: break-all; line-height: 1.4;"></div>
+            
+            <button class="btn btn-gray" id="parseSyntaxBtn" style="margin-top: 5px; background: #e67e22; font-size: 12px; padding: 6px;">✨ 将 [red] 语法转为颜色</button>
+
+            <div style="display: flex; gap: 10px; margin-top: 15px; align-items: center;">
+                <input type="color" id="selColor" value="#000000" style="width: 40px; height: 30px; border: none; padding: 0; cursor: pointer;" title="改颜色">
+                <button class="btn btn-gray" id="selBoldBtn" style="width: auto; flex: 1; margin: 0; padding: 5px;">B 加粗</button>
+                <input type="number" id="selFontSize" min="8" max="150" value="32" style="width: 60px; padding: 4px; border-radius: 4px; border: none;" title="整体字号">
+            </div>
+            
+            <button class="btn btn-red" id="deleteElementBtn" style="margin-top: 15px;">🗑️ 删除当前文本框</button>
+        </div>
+
         <div class="panel-section">
             <h4>5. 画布及全局字体设置</h4>
             <label style="font-size: 13px;">背景颜色：</label><input type="color" id="bgColor" value="#f0f0f0" style="width: 100%; height: 30px; border: none; cursor: pointer; margin-bottom: 10px;">
@@ -137,22 +159,15 @@
     <!-- 独立封面编辑器 -->
     <div id="coverModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 10000; justify-content: center; align-items: center; flex-direction: column;">
         <h3 style="color: white; margin-bottom: 10px;">📝 封面制作器</h3>
-        
         <div style="display: flex; gap: 20px;">
-            <!-- 画布 -->
             <div style="position: relative; width: 960px; height: 540px; background: #e2e2e2; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);" id="coverCanvas">
-                
                 <div id="coverImgContainer" style="position: absolute; left: 0px; top: 0px; width: 960px; height: 540px; cursor: move; border: 2px dashed transparent; box-sizing: border-box;">
                     <img id="coverImg" style="width: 100%; height: 100%; object-fit: contain; display: none; pointer-events: none;">
                     <div class="resize-handle" style="position: absolute; right: 0; bottom: 0; width: 20px; height: 20px; background: #3498db; border-radius: 50%; cursor: se-resize; display: block;"></div>
                 </div>
-                
                 <div id="coverText1" class="cover-text-el" style="position: absolute; left: 120px; top: 220px; font-weight: 900; font-size: 72px; color: #FF1493; display: none; cursor: move; padding: 0px; border: 1px dashed transparent; white-space: nowrap;">湖南省各区县</div>
-                
                 <div id="coverText2" class="cover-text-el" style="position: absolute; left: 80px; top: 350px; font-weight: 900; font-size: 80px; color: #1E90FF; display: none; cursor: move; padding: 0px; border: 1px dashed transparent; white-space: nowrap;">2025年GDP地图</div>
             </div>
-
-            <!-- 右侧控制面板 -->
             <div style="background: #2c3e50; padding: 20px; border-radius: 8px; width: 300px; border: 1px solid #3498db; display: flex; flex-direction: column; gap: 15px;">
                 <div>
                     <label style="color: white; font-size: 14px; display: block; margin-bottom: 5px;">选中文字：</label>
@@ -179,10 +194,31 @@
                 </div>
             </div>
         </div>
-
         <div style="margin-top: 20px; display: flex; gap: 20px;">
             <button class="btn btn-green" style="padding: 10px 30px; font-size: 16px;" onclick="confirmCover()">✅ 保存并关闭</button>
             <button class="btn btn-gray" style="padding: 10px 30px; font-size: 16px;" onclick="document.getElementById('coverModal').style.display='none'">❌ 取消</button>
+        </div>
+    </div>
+
+    <!-- 添加多色文字模态框 -->
+    <div id="textModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 10001; justify-content: center; align-items: center;">
+        <div style="background: #2c3e50; padding: 20px; border-radius: 8px; width: 520px; display: flex; flex-direction: column; gap: 12px;">
+            <h3 style="color: #fff; margin: 0;">添加多色文字</h3>
+            <p style="color: #bdc3c7; font-size: 12px; margin: 0; line-height: 1.6;">
+                <b>语法：</b>用 <code style="color: #e74c3c;">[red]</code>、<code style="color: #3498db;">[blue]</code> 等写在文字前面。支持 <code>[#FF0000]</code> 自定义颜色。<br>
+                <b>换行：</b>直接按回车键。
+            </p>
+            <textarea id="textContentInput" rows="4" style="width: 100%; padding: 8px; border-radius: 4px; border: none; font-family: monospace; box-sizing: border-box; font-size: 14px;" placeholder="例如：&#10;[blue]蓝色文字&#10;[red]红色文字"></textarea>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <label style="color: #fff; font-size: 14px;">基础字号：</label>
+                <input type="number" id="textFontSizeInput" value="32" min="8" max="150" style="width: 80px; padding: 6px; border-radius: 4px; border: none;">
+                <label style="color: #fff; font-size: 14px;">全局加粗：</label>
+                <input type="checkbox" id="textBoldInput" checked style="cursor: pointer;">
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px;">
+                <button class="btn btn-green" onclick="confirmAddText()" style="width: auto; padding: 8px 20px;">确定添加</button>
+                <button class="btn btn-gray" onclick="document.getElementById('textModal').style.display='none'" style="width: auto; padding: 8px 20px;">取消</button>
+            </div>
         </div>
     </div>
 
@@ -197,20 +233,34 @@
         let savedCoverData = null; 
         try { const c = localStorage.getItem('alphardCover'); if (c) savedCoverData = JSON.parse(c); } catch(e) {}
 
-        // === 画布内的拖动逻辑 ===
+        // === 画布内的拖动、缩放与选中 ===
         let isDragging = false, isResizing = false;
         let startX, startY, startLeft, startTop, startW, startH;
 
         document.getElementById('canvas').addEventListener('mousedown', function(e) {
             const draggable = e.target.closest('.draggable');
+            
             if (!draggable) {
                 document.querySelectorAll('.draggable').forEach(el => el.classList.remove('selected'));
                 activeEl = null;
+                document.getElementById('elementConfigPanel').style.display = 'none';
                 return;
             }
+            
             document.querySelectorAll('.draggable').forEach(el => el.classList.remove('selected'));
             draggable.classList.add('selected');
             activeEl = draggable;
+
+            // 同步左侧面板状态
+            if (activeEl.dataset.customId && activeEl.dataset.customType === 'text') {
+                let id = parseInt(activeEl.dataset.customId);
+                let elData = customElements.find(el => el.id === id);
+                if (elData) {
+                    syncPanelWithElement(elData);
+                }
+            } else {
+                document.getElementById('elementConfigPanel').style.display = 'none';
+            }
 
             if (e.target.classList.contains('resize-handle')) isResizing = true;
             else isDragging = true;
@@ -240,7 +290,12 @@
                 if (activeEl.id === 'table-container') {
                     activeEl.style.width = (startW + dx) + 'px';
                     activeEl.style.height = (startH + dy) + 'px';
+                } else if (activeEl.dataset.customType === 'text') {
+                    // 文字：只改宽度，高度自适应
+                    activeEl.style.width = Math.max(40, startW + dx) + 'px';
+                    activeEl.style.height = 'auto';
                 } else {
+                    // 图片：等比缩放
                     let newW = startW + dx;
                     if (newW < 50) newW = 50;
                     let ratio = startH / startW;
@@ -256,8 +311,10 @@
                 let id = parseInt(activeEl.dataset.customId);
                 let elData = customElements.find(el => el.id === id);
                 if (elData) {
-                    elData.x = activeEl.offsetLeft; elData.y = activeEl.offsetTop;
-                    elData.w = activeEl.offsetWidth; elData.h = activeEl.offsetHeight;
+                    elData.x = activeEl.offsetLeft; 
+                    elData.y = activeEl.offsetTop;
+                    elData.w = activeEl.offsetWidth; 
+                    elData.h = activeEl.offsetHeight;
                 }
             }
             if (activeEl.id === 'table-container') {
@@ -269,14 +326,179 @@
             isResizing = false;
         });
 
-        // === 封面编辑器的拖动与缩放逻辑 ===
+        // === 左侧文字编辑面板同步逻辑 ===
+        let savedRange = null; // 全局唯一声明，用于保存选中的文字范围
+        const editorEl = document.getElementById('textContentEditor');
+
+        function syncPanelWithElement(elData) {
+            document.getElementById('elementConfigPanel').style.display = 'block';
+            editorEl.innerHTML = elData.html;
+            editorEl.style.fontSize = elData.fontSize + 'px';
+            editorEl.style.fontWeight = elData.bold ? 'bold' : 'normal';
+            document.getElementById('selFontSize').value = elData.fontSize;
+            savedRange = null; // 切换文本框时清空之前的选区
+        }
+
+        editorEl.addEventListener('input', function() {
+            if (!activeEl || activeEl.dataset.customType !== 'text') return;
+            const id = parseInt(activeEl.dataset.customId);
+            let elData = customElements.find(el => el.id === id);
+            if (elData) {
+                elData.html = this.innerHTML;
+                const textContent = activeEl.querySelector('.text-content');
+                if (textContent) textContent.innerHTML = this.innerHTML;
+                activeEl.style.height = 'auto';
+                elData.w = activeEl.offsetWidth;
+                elData.h = activeEl.offsetHeight;
+            }
+        });
+
+        // 保存选区方法（必须用 cloneRange，否则失焦后数据丢失）
+        function saveSelection() {
+            const sel = window.getSelection();
+            if (sel.rangeCount > 0 && !sel.isCollapsed && editorEl.contains(sel.anchorNode)) {
+                savedRange = sel.getRangeAt(0).cloneRange(); 
+            }
+        }
+
+        editorEl.addEventListener('mouseup', saveSelection);
+        editorEl.addEventListener('keyup', saveSelection);
+
+        // 拦截面板点击，防止按钮抢走文字选区
+        document.getElementById('elementConfigPanel').addEventListener('mousedown', function(e) {
+            // 只拦截按钮和颜色选择器，放行数字输入框
+            if (e.target.tagName === 'BUTTON' || (e.target.tagName === 'INPUT' && e.target.type === 'color')) {
+                e.preventDefault(); 
+            } else if (e.target.tagName === 'INPUT' && e.target.type === 'number') {
+                // 点击数字框时，在它抢走焦点前最后保存一次选区
+                saveSelection();
+            }
+        });
+
+        function applyPanelStyle(command, value) {
+            if (!activeEl || activeEl.dataset.customType !== 'text') return;
+            
+            const sel = window.getSelection();
+            let range = null;
+            
+            // 优先使用实时选区，如果没有则用保存的选区
+            if (sel.rangeCount > 0 && !sel.isCollapsed && editorEl.contains(sel.anchorNode)) {
+                range = sel.getRangeAt(0);
+            } else if (savedRange) {
+                range = savedRange;
+            }
+
+            const hasSelection = range && !range.collapsed;
+
+            if (hasSelection) {
+                // 局部修改
+                if (command === 'fontSize') {
+                    // 【核心修复】纯 DOM 替换节点，彻底无视输入框焦点，绝对不会把数字打进文字里
+                    try {
+                        const span = document.createElement('span');
+                        span.style.fontSize = value + 'px';
+                        const contents = range.extractContents();
+                        // 清除内部原有的字号，防止嵌套
+                        if (contents.querySelectorAll) {
+                            contents.querySelectorAll('*').forEach(el => { if(el.style.fontSize) el.style.fontSize = ''; });
+                        }
+                        span.appendChild(contents);
+                        range.insertNode(span);
+                        
+                        // 更新选区为该节点
+                        savedRange = document.createRange();
+                        savedRange.selectNodeContents(span);
+                    } catch(err) {}
+                } else if (command === 'color' || command === 'bold') {
+                    // 颜色和加粗强制使用原生 execCommand，必须聚焦编辑器恢复选区
+                    editorEl.focus();
+                    if (savedRange) { 
+                        sel.removeAllRanges(); 
+                        sel.addRange(savedRange); 
+                    }
+                    if (command === 'color') document.execCommand('foreColor', false, value);
+                    if (command === 'bold') document.execCommand('bold');
+                    saveSelection();
+                }
+            } else {
+                // 全局修改（没有选中局部文字时）
+                if (command === 'color') {
+                    editorEl.style.color = value;
+                    editorEl.querySelectorAll('*').forEach(n => { if(n.style.color) n.style.color = ''; });
+                }
+                if (command === 'bold') {
+                    let isBold = editorEl.style.fontWeight === 'bold';
+                    editorEl.style.fontWeight = isBold ? 'normal' : 'bold';
+                    editorEl.querySelectorAll('*').forEach(n => { if(n.style.fontWeight) n.style.fontWeight = ''; });
+                }
+                if (command === 'fontSize') {
+                    editorEl.style.fontSize = value + 'px';
+                    editorEl.querySelectorAll('*').forEach(n => { if(n.style.fontSize) n.style.fontSize = ''; });
+                }
+            }
+            
+            // 强制触发 input 事件，同步到画布
+            editorEl.dispatchEvent(new Event('input'));
+        }
+
+        document.getElementById('selColor').addEventListener('input', (e) => applyPanelStyle('color', e.target.value));
+        document.getElementById('selBoldBtn').addEventListener('click', () => applyPanelStyle('bold'));
+        document.getElementById('selFontSize').addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            if (isNaN(val)) return;
+            applyPanelStyle('fontSize', val);
+        });
+
+        // 一键将 [red] 转换为实际颜色
+        document.getElementById('parseSyntaxBtn').addEventListener('click', function() {
+            if (!activeEl || activeEl.dataset.customType !== 'text') return;
+            const editor = document.getElementById('textContentEditor');
+            let plain = editor.innerText;
+            const colorMap = {
+                'red': '#FF0000', 'blue': '#0000FF', 'green': '#00AA00',
+                'yellow': '#FFD700', 'purple': '#800080', 'orange': '#FF8C00',
+                'pink': '#FFC0CB', 'black': '#000000', 'white': '#FFFFFF'
+            };
+            let html = plain.split('\n').map(line => {
+                let escaped = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                return escaped.replace(/[\[【]([a-zA-Z#0-9]+)[\]】](.*?)(?=[\[【]|$)/g, function(match, colorStr, content) {
+                    let hexColor = colorMap[colorStr.toLowerCase()] || (colorStr.startsWith('#') ? colorStr : '#' + colorStr);
+                    return `<span style="color:${hexColor};">${content}</span>`;
+                });
+            }).join('<br>');
+            
+            editor.innerHTML = html;
+            editor.dispatchEvent(new Event('input'));
+        });
+
+        document.getElementById('deleteElementBtn').addEventListener('click', () => {
+            if (!activeEl || !activeEl.dataset.customId) return;
+            const id = parseInt(activeEl.dataset.customId);
+            customElements = customElements.filter(el => el.id !== id);
+            activeEl.remove();
+            activeEl = null;
+            document.getElementById('elementConfigPanel').style.display = 'none';
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if ((e.key === 'Delete' || e.key === 'Backspace') && activeEl && activeEl.dataset.customId) {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'DIV' && e.target.id === 'textContentEditor') return;
+                e.preventDefault();
+                const id = parseInt(activeEl.dataset.customId);
+                customElements = customElements.filter(el => el.id !== id);
+                activeEl.remove();
+                activeEl = null;
+                document.getElementById('elementConfigPanel').style.display = 'none';
+            }
+        });
+
+        // === 封面编辑器逻辑 (保持不变) ===
         let coverDragTarget = null;
         let coverIsResizing = false;
         let coverStartX, coverStartY, coverStartLeft, coverStartTop, coverStartW, coverStartH;
 
         document.getElementById('coverCanvas').addEventListener('mousedown', function(e) {
             const target = e.target;
-            // 判断点击的是图片容器、文字、还是缩放点
             if (target.id === 'coverImgContainer' || target.classList.contains('cover-text-el') || target.classList.contains('resize-handle')) {
                 if (target.classList.contains('resize-handle')) {
                     coverDragTarget = target.parentElement;
@@ -284,24 +506,20 @@
                 } else {
                     coverDragTarget = target;
                     coverIsResizing = false;
-                    // 给选中的元素加虚线框，同时取消其他的
                     document.querySelectorAll('.cover-text-el').forEach(el => el.style.border = '1px dashed transparent');
                     if(target.classList.contains('cover-text-el')) {
                         target.style.border = '1px dashed #3498db';
-                        // 同步右侧面板
                         let selector = document.getElementById('coverTextSelector');
                         selector.value = target.id === 'coverText1' ? 'text1' : 'text2';
                         switchCoverText();
                     }
                 }
-
                 coverStartX = e.clientX;
                 coverStartY = e.clientY;
                 coverStartLeft = parseInt(coverDragTarget.style.left) || 0;
                 coverStartTop = parseInt(coverDragTarget.style.top) || 0;
                 coverStartW = coverDragTarget.offsetWidth;
                 coverStartH = coverDragTarget.offsetHeight;
-
                 document.addEventListener('mousemove', coverMove);
                 document.addEventListener('mouseup', coverUp);
                 e.preventDefault();
@@ -312,15 +530,12 @@
             if (!coverDragTarget) return;
             const dx = e.clientX - coverStartX;
             const dy = e.clientY - coverStartY;
-
             if (coverIsResizing) {
-                // 缩放地图
                 let newW = coverStartW + dx;
                 if (newW < 50) newW = 50;
                 coverDragTarget.style.width = newW + 'px';
-                coverDragTarget.style.height = 'auto'; // 保持比例
+                coverDragTarget.style.height = 'auto';
             } else {
-                // 拖动
                 coverDragTarget.style.left = (coverStartLeft + dx) + 'px';
                 coverDragTarget.style.top = (coverStartTop + dy) + 'px';
             }
@@ -332,18 +547,14 @@
             document.removeEventListener('mouseup', coverUp);
         }
 
-        // === 打开封面编辑器 ===
         function openCoverEditor() {
             if (slidesData.length === 0) return alert("请先上传地图图片！");
             document.getElementById('coverModal').style.display = 'flex';
-            
-            // 1. 永远加载最后一张地图
             let lastImageUrl = slidesData[slidesData.length - 1].imageUrl;
             let img = document.getElementById('coverImg');
             img.src = lastImageUrl;
             img.style.display = 'block';
             
-            // 2. 恢复尺寸、位置和背景
             let container = document.getElementById('coverImgContainer');
             let t1 = document.getElementById('coverText1');
             let t2 = document.getElementById('coverText2');
@@ -355,17 +566,14 @@
                 container.style.top = savedCoverData.imgY + 'px';
                 container.style.width = savedCoverData.imgW + 'px';
                 container.style.height = (savedCoverData.imgH || 540) + 'px';
-
                 t1.innerText = savedCoverData.texts[0].content;
                 t1.style.left = savedCoverData.texts[0].x + 'px'; t1.style.top = savedCoverData.texts[0].y + 'px';
                 t1.style.fontSize = savedCoverData.texts[0].fontSize + 'px';
                 t1.style.color = savedCoverData.texts[0].color;
-                
                 t2.innerText = savedCoverData.texts[1].content;
                 t2.style.left = savedCoverData.texts[1].x + 'px'; t2.style.top = savedCoverData.texts[1].y + 'px';
                 t2.style.fontSize = savedCoverData.texts[1].fontSize + 'px';
                 t2.style.color = savedCoverData.texts[1].color;
-
                 let savedBg = savedCoverData.bgColor ? '#' + rgbToHex(savedCoverData.bgColor) : '#e2e2e2';
                 document.getElementById('coverCanvas').style.backgroundColor = savedBg;
                 document.getElementById('coverBgColor').value = savedBg;
@@ -377,12 +585,10 @@
                 document.getElementById('coverCanvas').style.backgroundColor = '#e2e2e2';
                 document.getElementById('coverBgColor').value = '#e2e2e2';
             }
-
             document.getElementById('coverTextSelector').value = 'text1';
             switchCoverText();
         }
 
-        // 切换文字并同步到输入框和颜色器
         function switchCoverText() {
             let selector = document.getElementById('coverTextSelector').value;
             let target = document.getElementById(selector === 'text1' ? 'coverText1' : 'coverText2');
@@ -391,30 +597,23 @@
             document.getElementById('coverFontSize').value = parseInt(target.style.fontSize);
         }
 
-        // 更新文字内容
         function updateCoverText() {
             let selector = document.getElementById('coverTextSelector').value;
             let target = document.getElementById(selector === 'text1' ? 'coverText1' : 'coverText2');
             target.innerText = document.getElementById('coverTextInput').value;
         }
 
-        // 更新文字颜色和字号
         function updateCoverStyle() {
             let selector = document.getElementById('coverTextSelector').value;
             let target = document.getElementById(selector === 'text1' ? 'coverText1' : 'coverText2');
-            let color = document.getElementById('coverColor').value;
-            let size = document.getElementById('coverFontSize').value;
-            
-            target.style.color = color;
-            target.style.fontSize = size + 'px';
+            target.style.color = document.getElementById('coverColor').value;
+            target.style.fontSize = document.getElementById('coverFontSize').value + 'px';
         }
 
-        // === 保存封面 ===
         async function confirmCover() {
             let text1 = document.getElementById('coverText1');
             let text2 = document.getElementById('coverText2');
             let container = document.getElementById('coverImgContainer');
-
             savedCoverData = {
                 bgColor: '#' + rgbToHex(document.getElementById('coverCanvas').style.backgroundColor || '#e2e2e2'),
                 imgX: parseInt(container.style.left) || 0,
@@ -426,13 +625,12 @@
                     { content: text2.innerText, x: parseInt(text2.style.left), y: parseInt(text2.style.top), fontSize: parseInt(text2.style.fontSize), color: text2.style.color }
                 ]
             };
-            
             localStorage.setItem('alphardCover', JSON.stringify(savedCoverData));
             document.getElementById('coverModal').style.display = 'none';
             alert("✅ 封面已保存！点击导出，它会自动出现在 PPT 第一页。");
         }
 
-        // 读取上传的文件
+        // === 文件读取与渲染逻辑 ===
         document.getElementById('folderInput').addEventListener('change', function(e) {
             const files = Array.from(e.target.files).filter(f => /\.(jpg|jpeg|png)$/i.test(f.name));
             files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
@@ -596,6 +794,7 @@
 
             document.getElementById('pageInput').value = index + 1;
             document.getElementById('totalPages').innerText = slidesData.length;
+            renderCustomElements();
         }
 
         function prevSlide() { if (currentPreviewIndex > 0) { currentPreviewIndex--; renderSlide(currentPreviewIndex); } }
@@ -627,10 +826,189 @@
         document.getElementById('emptyPagesInput').addEventListener('input', () => {
             if (window.currentCleanData) generateSlideData(window.currentCleanData);
         });
-
         document.getElementById('redPagesInput').addEventListener('input', () => { renderSlide(currentPreviewIndex); });
         document.getElementById('thFontSize').addEventListener('input', (e) => { globalStyle.thFontSize = parseInt(e.target.value); renderSlide(currentPreviewIndex); });
         document.getElementById('tdFontSize').addEventListener('input', (e) => { globalStyle.tdFontSize = parseInt(e.target.value); renderSlide(currentPreviewIndex); });
+
+        // === 解析 [red] 语法为 HTML ===
+        function parseColorSyntax(text) {
+            const colorMap = {
+                'red': '#FF0000', 'blue': '#0000FF', 'green': '#00AA00',
+                'yellow': '#FFD700', 'purple': '#800080', 'orange': '#FF8C00',
+                'pink': '#FFC0CB', 'black': '#000000', 'white': '#FFFFFF'
+            };
+            // 按换行符分割，逐行处理
+            return text.split('\n').map(line => {
+                let escaped = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                return escaped.replace(/[\[【]([a-zA-Z#0-9]+)[\]】](.*?)(?=[\[【]|$)/g, function(match, colorStr, content) {
+                    let hexColor = colorMap[colorStr.toLowerCase()] || (colorStr.startsWith('#') ? colorStr : '#' + colorStr);
+                    return `<span style="color:${hexColor};">${content}</span>`;
+                });
+            }).join('<br>');
+        }
+
+        // === 自定义元素处理 ===
+        function addTextElement() {
+            document.getElementById('textContentInput').value = '[blue]蓝色文字\n[red]红色文字';
+            document.getElementById('textFontSizeInput').value = 32;
+            document.getElementById('textBoldInput').checked = true;
+            document.getElementById('textModal').style.display = 'flex';
+        }
+
+        function confirmAddText() {
+            const rawText = document.getElementById('textContentInput').value.trim();
+            if (!rawText) return alert('请输入文字内容');
+            const fontSize = parseInt(document.getElementById('textFontSizeInput').value) || 32;
+            const bold = document.getElementById('textBoldInput').checked;
+            
+            // 将输入的语法转成 HTML
+            let html = parseColorSyntax(rawText);
+
+            const id = ++elementIdCounter;
+            customElements.push({
+                id, type: 'text', html, fontSize, bold,
+                x: 330, y: 100, w: 300, h: 100
+            });
+            document.getElementById('textModal').style.display = 'none';
+            renderCustomElements();
+        }
+
+        document.getElementById('imageUploader').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const dataUrl = ev.target.result;
+                const img = new Image();
+                img.onload = function() {
+                    let w = 200, h = w * (img.height / img.width);
+                    if (h > 200) { h = 200; w = h * (img.width / img.height); }
+                    const id = ++elementIdCounter;
+                    customElements.push({
+                        id, type: 'image', dataUrl,
+                        x: (960 - w) / 2, y: (540 - h) / 2, w, h
+                    });
+                    renderCustomElements();
+                };
+                img.src = dataUrl;
+            };
+            reader.readAsDataURL(file);
+            e.target.value = '';
+        });
+
+        function renderCustomElements() {
+            document.querySelectorAll('#canvas .custom-el').forEach(el => el.remove());
+            customElements.forEach(elData => {
+                const div = document.createElement('div');
+                div.className = 'draggable custom-el';
+                div.dataset.customId = elData.id;
+                div.dataset.customType = elData.type;
+                div.style.left = elData.x + 'px';
+                div.style.top = elData.y + 'px';
+                div.style.width = elData.w + 'px';
+                div.style.height = elData.h === 'auto' ? 'auto' : elData.h + 'px';
+                div.style.position = 'absolute';
+                div.style.boxSizing = 'border-box';
+
+                if (elData.type === 'text') {
+                    div.style.fontSize = elData.fontSize + 'px';
+                    div.style.fontWeight = elData.bold ? 'bold' : 'normal';
+                    div.style.fontFamily = "'Microsoft YaHei', sans-serif";
+                    div.style.lineHeight = '1.3';
+                    div.style.color = '#000';
+                    div.style.whiteSpace = 'pre-wrap';
+                    div.style.wordBreak = 'break-word';
+                    div.style.padding = '4px';
+                    
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'text-content';
+                    contentDiv.style.width = '100%';
+                    contentDiv.innerHTML = elData.html;
+                    contentDiv.style.cursor = 'grab';
+                    div.appendChild(contentDiv);
+                    
+                } else if (elData.type === 'image') {
+                    const img = document.createElement('img');
+                    img.src = elData.dataUrl;
+                    img.style.width = '100%';
+                    img.style.height = '100%';
+                    img.style.objectFit = 'contain';
+                    img.style.pointerEvents = 'none';
+                    div.appendChild(img);
+                }
+
+                const handle = document.createElement('div');
+                handle.className = 'resize-handle';
+                div.appendChild(handle);
+
+                document.getElementById('canvas').appendChild(div);
+            });
+        }
+
+        function htmlToRuns(html, baseFontSize, baseBold) {
+            const doc = new DOMParser().parseFromString('<div>' + html + '</div>', 'text/html');
+            const root = doc.body.firstChild;
+            const runs = [];
+
+            function walk(node, inherited) {
+                if (node.nodeType === 3) { // 文本节点
+                    if (node.nodeValue) {
+                        runs.push({
+                            text: node.nodeValue,
+                            options: {
+                                color: inherited.color,
+                                fontSize: inherited.size,
+                                bold: inherited.bold,
+                                fontFace: 'Microsoft YaHei'
+                            }
+                        });
+                    }
+                } else if (node.nodeType === 1) { // 元素节点
+                    let current = { ...inherited };
+                    
+                    if (node.style) {
+                        if (node.style.color) current.color = rgbToHex(node.style.color);
+                        if (node.style.fontSize) {
+                            let px = parseInt(node.style.fontSize);
+                            if (!isNaN(px)) current.size = Math.floor(px * 0.75);
+                        }
+                        if (node.style.fontWeight === 'bold' || parseInt(node.style.fontWeight) >= 600) {
+                            current.bold = true;
+                        } else if (node.style.fontWeight === 'normal') {
+                            current.bold = false;
+                        }
+                    }
+                    if (node.tagName === 'B' || node.tagName === 'STRONG') current.bold = true;
+                    if (node.tagName === 'FONT' && node.getAttribute('color')) {
+                        current.color = rgbToHex(node.getAttribute('color'));
+                    }
+
+                    if (node.tagName === 'BR') {
+                        runs.push({ text: '\n', options: { color: inherited.color, fontSize: inherited.size, bold: inherited.bold, fontFace: 'Microsoft YaHei' } });
+                        return;
+                    }
+
+                    // 浏览器 contenteditable 按回车会生成 div，在这里补换行
+                    const isBlock = ['DIV', 'P', 'LI'].includes(node.tagName);
+                    if (isBlock && node !== root && runs.length > 0) {
+                        runs.push({ text: '\n', options: { color: inherited.color, fontSize: inherited.size, bold: inherited.bold, fontFace: 'Microsoft YaHei' } });
+                    }
+
+                    node.childNodes.forEach(ch => walk(ch, current));
+                }
+            }
+
+            walk(root, { color: '000000', size: Math.floor(baseFontSize * 0.75), bold: baseBold });
+            return runs.filter(r => r.text !== ''); // 移除空文本
+        }
+
+        function rgbToHex(c) {
+            if (!c) return '000000';
+            if (c.startsWith('#')) return c.replace('#','').toUpperCase();
+            let m = c.match(/\d+/g);
+            if (!m) return '000000';
+            return m.slice(0,3).map(x => ('0' + parseInt(x).toString(16)).slice(-2)).join('').toUpperCase();
+        }
 
         // === 导出 PPT ===
         document.getElementById('exportBtn').addEventListener('click', async () => {
@@ -694,46 +1072,29 @@
 
                 savedCoverData.texts.forEach(t => {
                     let baseFontPt = Math.floor(t.fontSize * 0.75);
-                    // 向下微调位置
                     let adjustedY = (t.y * PX_TO_INCH) + (baseFontPt * 0.001); 
                     let x = t.x * PX_TO_INCH;
                     let hexColor = rgbToHex(t.color);
                     
-                    // 【关键参数】控制描边粗细：0.0015 大约是 1.2 磅的细边
-                    // 如果觉得不够粗，可以改成 0.002 或 0.0025
                     let offset = baseFontPt * 0.0015; 
                     let dirs = [];
-                    
-                    // 使用 72 个方向（每 5 度一个点），密度极高，肉眼看起来绝对圆滑无锯齿
                     for(let i = 0; i < 72; i++) {
                         let angle = (i * Math.PI * 2) / 72;
                         dirs.push([Math.cos(angle) * offset, Math.sin(angle) * offset]);
                     }
 
-                    // 1. 画 72 层纯白实心底层
                     dirs.forEach(dir => {
                         coverSlide.addText(t.content, { 
-                            x: x + dir[0], 
-                            y: adjustedY + dir[1], 
-                            w: 10, h: 1.5, 
-                            color: 'FFFFFF', 
-                            fontSize: baseFontPt, 
-                            bold: true, 
-                            fontFace: 'Microsoft YaHei', 
-                            wrap: false, autoFit: false, 
-                            align: 'left', valign: 'top', margin: 0, lineSpacingMultiple: 1.0 
+                            x: x + dir[0], y: adjustedY + dir[1], w: 10, h: 1.5, 
+                            color: 'FFFFFF', fontSize: baseFontPt, bold: true, fontFace: 'Microsoft YaHei', 
+                            wrap: false, autoFit: false, align: 'left', valign: 'top', margin: 0, lineSpacingMultiple: 1.0 
                         });
                     });
 
-                    // 2. 顶层彩色字
                     coverSlide.addText(t.content, { 
-                        x: x, y: adjustedY, 
-                        w: 10, h: 1.5, 
-                        color: hexColor, 
-                        fontSize: baseFontPt, 
-                        bold: true, fontFace: 'Microsoft YaHei', 
-                        wrap: false, autoFit: false, 
-                        align: 'left', valign: 'top', margin: 0, lineSpacingMultiple: 1.0 
+                        x: x, y: adjustedY, w: 10, h: 1.5, 
+                        color: hexColor, fontSize: baseFontPt, bold: true, fontFace: 'Microsoft YaHei', 
+                        wrap: false, autoFit: false, align: 'left', valign: 'top', margin: 0, lineSpacingMultiple: 1.0 
                     });
                 });
             }
@@ -744,7 +1105,7 @@
                 let pptSlide = pptx.addSlide();
                 pptSlide.background = { color: globalStyle.bgColor.replace('#', '') };
 
-                // 1. 放入地图
+                // 1. 地图
                 const base64Img = await convertToBase64(slide.imageUrl);
                 let realW = mapImgDom.naturalWidth || 1;
                 let realH = mapImgDom.naturalHeight || 1;
@@ -754,7 +1115,7 @@
                 let mapH = mapW * (realH / realW); 
                 pptSlide.addImage({ data: base64Img, x: mapX, y: mapY, w: mapW, h: mapH, sizing: { type: 'crop', w: mapW, h: mapH } });
 
-                // 2. 放入表格
+                // 2. 表格
                 if (dynamicColumns.length > 0) {
                     let tX = tableEl.offsetLeft * PX_TO_INCH;
                     let tY = tableEl.offsetTop * PX_TO_INCH;
@@ -820,6 +1181,28 @@
                         });
                     });
                 }
+
+                // 3. 自定义元素
+                customElements.forEach(elData => {
+                    let x = elData.x * PX_TO_INCH;
+                    let y = elData.y * PX_TO_INCH;
+                    let w = elData.w * PX_TO_INCH;
+                    let h = elData.h === 'auto' ? 2 : elData.h * PX_TO_INCH; 
+                    
+                    if (elData.type === 'text') {
+                        const runs = htmlToRuns(elData.html, elData.fontSize, elData.bold);
+                        if (runs.length === 0) return;
+                        pptSlide.addText(runs, {
+                            x, y, w, h,
+                            align: 'left', valign: 'top', margin: 0, wrap: true, lineSpacingMultiple: 1.2
+                        });
+                    } else if (elData.type === 'image') {
+                        pptSlide.addImage({
+                            data: elData.dataUrl,
+                            x, y, w, h, sizing: { type: 'contain', w, h }
+                        });
+                    }
+                });
             }
             await pptx.writeFile({ fileName: "alphard.pptx" });
             document.getElementById('status').innerText = "✅ PPT 已生成并下载！";
@@ -831,14 +1214,6 @@
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
             XLSX.writeFile(wb, "数据表格样例.xlsx");
-        }
-
-        function rgbToHex(c) {
-            if (!c) return '000000';
-            if (c.startsWith('#')) return c.replace('#','').toUpperCase();
-            let m = c.match(/\d+/g);
-            if (!m) return '000000';
-            return m.slice(0,3).map(x => ('0' + parseInt(x).toString(16)).slice(-2)).join('').toUpperCase();
         }
 
         function convertToBase64(url) {
